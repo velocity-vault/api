@@ -53,3 +53,9 @@ impl<'c> FromRow<'c, MySqlRow> for Map {
         })
     }
 }
+
+#[derive(Serialize, FromRow)]
+pub struct Mode {
+    name: String,
+    short_name: String,
+}

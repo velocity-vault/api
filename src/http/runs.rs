@@ -11,13 +11,13 @@ pub fn config(conf: &mut ServiceConfig) {
 
 #[derive(Deserialize)]
 pub struct GetMapTop { 
-    map_name: String,
+    map: String,
     course: u32,
     mode: String,
     kind: RunKind,
 }
 
-#[get("/maptop")]
+#[get("/get_maptop")]
 async fn get_maptop(query: Query<GetMapTop>, db: Data<MySqlPool>) -> Result<Json<Vec<MapRun>>> {
     let (index, teleports) = match query.kind {
         RunKind::NUB => ("idx_runs__filterid_playerid_ticks_createdat", "1"),
@@ -45,7 +45,7 @@ async fn get_maptop(query: Query<GetMapTop>, db: Data<MySqlPool>) -> Result<Json
         GROUP BY r.player_id
         ORDER BY ticks ASC
     "#))
-    .bind(&query.map_name)
+    .bind(&query.map)
     .bind(query.course)
     .bind(&query.mode)
     .fetch_all(db.get_ref()).await

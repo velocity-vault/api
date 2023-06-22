@@ -8,6 +8,7 @@ mod auth_user;
 mod model;
 mod runs;
 mod maps;
+mod modes;
 
 pub async fn serve(db: MySqlPool) -> anyhow::Result<()> {
     HttpServer::new(move || {
@@ -17,6 +18,7 @@ pub async fn serve(db: MySqlPool) -> anyhow::Result<()> {
             .configure(auth_user::config)
             .configure(runs::config)
             .configure(maps::config)
+            .configure(modes::config)
     })
     .bind(("0.0.0.0", 9000))?
     .run().await?;

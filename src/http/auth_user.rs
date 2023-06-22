@@ -85,9 +85,7 @@ impl FromRequest for User {
         let Ok(decoded) = jsonwebtoken::decode::<Claims>(&token, &data.decoding_key, &Validation::default()) else {
             return Box::pin(async move { Err(actix_web::error::ErrorUnauthorized("X-User-Token is invalid")) });
         };
-        Box::pin(async move {
-            Ok(User::new(decoded.claims.user_id, decoded.claims.permissions))
-        })
+        Box::pin(async move { Ok(User::new(decoded.claims.user_id, decoded.claims.permissions)) })
     }
 }
 

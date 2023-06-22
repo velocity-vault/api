@@ -3,7 +3,7 @@ use actix_web::get;
 use actix_web::web::{ServiceConfig, Json, Query, Data};
 use serde::Deserialize;
 use sqlx::MySqlPool;
-use crate::http::model::{MapRun, RunKind};
+use super::model::{MapRun, RunKind};
 
 pub fn config(conf: &mut ServiceConfig) {
     conf.service(get_maptop);
@@ -39,7 +39,7 @@ async fn get_maptop(query: Query<GetMapTop>, db: Data<MySqlPool>) -> Result<Json
             WHERE m.name = ? AND c.num = ? AND m2.short_name = ? AND {teleports}
             GROUP BY r.player_id 
             ORDER BY ticks ASC
-            LIMIT 250
+            LIMIT 50
         ) t ON t.player_id = r.player_id AND t.filter_id = r.filter_id AND t.ticks = r.ticks
         WHERE {teleports}
         GROUP BY r.player_id
@@ -49,6 +49,6 @@ async fn get_maptop(query: Query<GetMapTop>, db: Data<MySqlPool>) -> Result<Json
     .bind(query.course)
     .bind(&query.mode)
     .fetch_all(db.get_ref()).await
-    .map_err(|e| actix_web::error::ErrorInternalServerError(e.to_string()))?;
+    .map_err(|_| actix_web::error::ErrorInternalServerError(""))?;
     Ok(Json(result))
 }

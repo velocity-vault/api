@@ -24,8 +24,8 @@ async fn get_map(query: Query<GetMap>, db: Data<MySqlPool>) -> Result<Json<Map>>
                 THEN JSON_ARRAY()  
                 ELSE JSON_ARRAYAGG(DISTINCT JSON_OBJECT(
                     'course', c.num,
-                    'nubTier', f.nub_tier,
-                    'proTier', f.pro_tier
+                    'nub_tier', f.nub_tier,
+                    'pro_tier', f.pro_tier
                 ) ORDER BY c.num ASC) 
             END AS courses,
             CASE WHEN ma.mapper_id IS NULL
@@ -66,8 +66,8 @@ async fn get_maps(query: Query<GetMaps>, db: Data<MySqlPool>) -> Result<Json<Vec
                 THEN JSON_ARRAY()  
                 ELSE JSON_ARRAYAGG(DISTINCT JSON_OBJECT(
                     'course', c.num,
-                    'nubTier', f.nub_tier,
-                    'proTier', f.pro_tier
+                    'nub_tier', f.nub_tier,
+                    'pro_tier', f.pro_tier
                 ) ORDER BY c.num ASC) 
             END AS courses,
             CASE WHEN ma.mapper_id IS NULL

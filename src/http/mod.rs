@@ -9,6 +9,7 @@ mod model;
 mod runs;
 mod maps;
 mod modes;
+mod search;
 
 pub async fn serve(db: MySqlPool) -> anyhow::Result<()> {
     HttpServer::new(move || {
@@ -19,6 +20,7 @@ pub async fn serve(db: MySqlPool) -> anyhow::Result<()> {
             .configure(runs::config)
             .configure(maps::config)
             .configure(modes::config)
+            .configure(search::config)
     })
     .bind(("0.0.0.0", 9000))?
     .run().await?;

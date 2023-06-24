@@ -20,9 +20,9 @@ pub struct MapRun {
 
 #[derive(Serialize, FromRow)]
 pub struct Run {
-    ticks: u32,
-    teleports: u32,
-    created_at: DateTime<Utc>,
+    pub ticks: u32,
+    pub teleports: u32,
+    pub created_at: DateTime<Utc>,
 }
 
 #[derive(Serialize, Deserialize, FromRow)]

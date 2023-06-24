@@ -83,7 +83,9 @@ async fn get_maps(query: Query<GetMaps>, db: Data<MySqlPool>) -> Result<Json<Vec
         INNER JOIN courses c ON c.map_id = m.map_id
         INNER JOIN modes m2 ON m2.short_name = ?
         INNER JOIN filters f ON f.course_id = c.course_id AND f.mode_id = m2.mode_id 
+        WHERE m.validated
         GROUP BY m.map_id 
+        ORDER BY m.name
     "#)
     .bind(&query.mode)
     .fetch_all(db.get_ref()).await

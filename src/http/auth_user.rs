@@ -1,24 +1,49 @@
 use actix_web::web::{self, Data, Json, ServiceConfig};
-use actix_web::{get, FromRequest, Result};
+use actix_web::{get, FromRequest, Result, HttpResponse, HttpRequest};
 use chrono::{Duration, Utc};
+use futures::TryFutureExt;
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
 use std::{env, future::Future, pin::Pin};
+use steam_openid::SteamOpenId;
+use super::model::AuthUserResponse;
 
 pub fn config(conf: &mut ServiceConfig) {
     conf.app_data(Data::new(LocalData::new()))
-        .service(get_token)
+        .service(steam_auth)
+        .service(steam_auth_verify)
         .service(get_protected);
 }
 
-#[get("/token")]
-async fn get_token(data: Data<LocalData>) -> Result<String> {
-    let mut permissions = Vec::new();
-    permissions.push(Permission::ViewMaps);
-    let claims = Claims::new(123456789, permissions, Duration::hours(2));
+#[get("/steam_auth")]
+async fn steam_auth(data: Data<LocalData>) -> HttpResponse {
+    let location = data.steam_openid.get_redirect_url();
+    HttpResponse::PermanentRedirect()
+        .append_header(("Location", location))
+        .append_header(("Cache-Control", "no-store"))
+        .finish()
+}
+
+#[get("/steam_auth_verify")]
+async fn steam_auth_verify(req: HttpRequest, data: Data<LocalData>) -> Result<HttpResponse> {
+    let steamid64 = data.steam_openid.verify(req.query_string()).await
+        .map_err(|_| actix_web::error::ErrorUnauthorized("Verification failed"))?;
+    const STEAMID64_BASE: u64 = 76561197960265728;
+    if steamid64 <= STEAMID64_BASE {
+        return Err(actix_web::error::ErrorInternalServerError("Steam oopsie, please send help"));
+    }
+
+    let user_id = steamid64 - STEAMID64_BASE;
+    let permissions = Vec::new();
+    let claims = Claims::new(user_id, permissions, Duration::hours(2));
     let token = jsonwebtoken::encode(&Header::default(), &claims, &data.encoding_key)
-        .map_err(|_| actix_web::error::ErrorInternalServerError(""))?;
-    Ok(token)
+        .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to encode token"))?;
+
+    let result = AuthUserResponse {
+        player_id: user_id,
+        token,
+    };
+    Ok(HttpResponse::Ok().json(result))
 }
 
 #[get("/protected")]
@@ -35,13 +60,13 @@ pub enum Permission {
 
 #[derive(Serialize, Deserialize)]
 struct Claims {
-    user_id: i64,
+    user_id: u64,
     permissions: Vec<Permission>,
     exp: i64,
 }
 
 impl Claims {
-    fn new(user_id: i64, permissions: Vec<Permission>, valid_for: Duration) -> Self {
+    fn new(user_id: u64, permissions: Vec<Permission>, valid_for: Duration) -> Self {
         Self {
             user_id,
             permissions,
@@ -51,18 +76,18 @@ impl Claims {
 }
 
 pub struct User {
-    id: i64,
+    id: u64,
     permissions: Vec<Permission>,
 }
 
 impl User {
-    fn new(id: i64, permissions: Vec<Permission>) -> Self {
+    fn new(id: u64, permissions: Vec<Permission>) -> Self {
         Self {
             id,
             permissions,
         }
     }
-    pub fn id(self: &Self) -> i64 {
+    pub fn id(self: &Self) -> u64 {
         self.id
     }
     pub fn has_permission(self: &Self, p: Permission) -> bool {
@@ -100,6 +125,7 @@ pub fn user_guard(condition: bool) -> Result<()> {
 struct LocalData {
     encoding_key: EncodingKey,
     decoding_key: DecodingKey,
+    steam_openid: SteamOpenId,
 }
 
 impl LocalData {
@@ -109,6 +135,7 @@ impl LocalData {
         Self {
             encoding_key: EncodingKey::from_secret(auth_token_secret.as_ref()),
             decoding_key: DecodingKey::from_secret(auth_token_secret.as_ref()),
+            steam_openid: SteamOpenId::new("http://localhost:5000", "#/steam_auth").unwrap(),
         }
     }
 }

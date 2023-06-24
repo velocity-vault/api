@@ -59,3 +59,9 @@ pub struct Mode {
     name: String,
     short_name: String,
 }
+
+#[derive(Serialize)]
+pub struct AuthUserResponse {
+    pub player_id: u64,
+    pub token: String,
+}
